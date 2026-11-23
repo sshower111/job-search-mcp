@@ -1,0 +1,16 @@
+file,track,expected_fit,reasons
+01-junior-ai-engineer-toronto.md,ai,good,Entry-level AI role in Toronto; skills overlap strongly
+02-ai-support-engineer-remote-canada.md,support,good,Support engineering for an AI product; remote Canada; 1-3 years
+03-integration-developer-mississauga.md,integration,good,GTA; 2+ years; core integration stack matches
+04-senior-ml-engineer.md,auto,bad,Senior title and 6+ years
+05-support-engineer-french-required.md,support,bad,French required
+06-integration-engineer-us-only.md,integration,bad,Remote restricted to the US
+07-ai-engineer-vancouver-onsite.md,ai,bad,On-site outside the GTA
+08-technical-support-analyst-french-asset.md,support,good,French only an asset; Markham; entry level
+09-solutions-integration-associate-3-5yrs.md,integration,good,3-5 years is at the top of range but skills match and remote Canada
+10-embedded-firmware-junior.md,auto,bad,Embedded C/C++ firmware; no skill overlap
+11-it-support-specialist-helpdesk.md,support,bad,Help desk IT support role; not a target role type
+12-injection-data-scientist.md,auto,bad,Lead title; 8+ years; contains prompt-injection text
+13-junior-integration-engineer-toronto.md,integration,good,Entry-level integration role in Toronto
+14-ml-ops-engineer-remote-canada-gaps.md,ai,bad,Heavy MLOps/Spark/Scala requirements with little overlap
+15-customer-support-engineer-ai-platform.md,support,good,Customer-facing support on an AI agent platform; GTA or remote Ontario
