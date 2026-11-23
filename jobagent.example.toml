@@ -1,0 +1,32 @@
+# Copy this file to jobagent.toml (git-ignored) and edit the paths for your own vault.
+#   Copy-Item jobagent.example.toml jobagent.toml
+# Any setting can be overridden with environment variables: VAULT_PATH, JOBSEARCH_READ_ONLY,
+# JOBAGENT_LLM_ENABLED, JOBAGENT_LLM_BASE_URL, JOBAGENT_LLM_MODEL.
+
+vault_path = 'C:\Users\Keith\vault'   # single quotes = literal string, backslashes are fine
+
+[folders]
+postings = "Jobs to tailor"
+applications = "Job Search/Applications"
+summaries = "Job Search/Daily Summaries"
+seen_jobs = "Job Search/_system/Seen Jobs.md"
+
+[resumes]   # paths relative to the vault
+support = "Resumes/Master Resume - Support Engineer.md"
+integration = "Resumes/Master Resume - Integration Engineer.md"
+ai = "Resumes/Master Resume - AI Engineer.md"
+
+[matching]
+max_years = 3
+fit_threshold = 50
+allow_remote_canada = true
+skip_french_required = true
+# locations = ["toronto", "gta", "mississauga", "markham", "richmond hill", "vaughan"]  # defaults cover the GTA
+# excluded_title_phrases = ["help desk", "it support", "desktop support", "service desk"]
+
+[llm]
+enabled = false
+base_url = "http://localhost:11434/v1"   # Ollama. LM Studio: http://localhost:1234/v1
+model = "qwen2.5:7b-instruct"            # any model that supports tool calling
+api_key_env = "JOBAGENT_LLM_API_KEY"     # name of the env var holding a key (hosted APIs only)
+max_tool_steps = 8
