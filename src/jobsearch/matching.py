@@ -226,6 +226,33 @@ def score_posting(
     )
 
 
+_TRACK_HINTS = {
+    "ai": re.compile(r"\b(ai|ml|machine learning|llms?|genai|generative|deep learning|nlp|data scien\w*|rag|"
+                     r"mcp|model context protocol|agents?|agentic|prompt\w*)\b", re.I),
+    "integration": re.compile(r"\b(integrat\w*|apis?|middleware|etl|ipaas|mulesoft|boomi|webhooks?|"
+                              r"implementation|solutions? engineer)\b", re.I),
+    "support": re.compile(r"\b(support|customer|troubleshoot\w*|tickets?|incidents?|escalations?|"
+                          r"service desk|help ?desk)\b", re.I),
+}
+
+
+def track_affinity(title: str, body: str, track: str) -> int:
+    """How strongly a posting's wording points at a track. Title words count three times as much as body words."""
+    pattern = _TRACK_HINTS.get(track)
+    if pattern is None:
+        return 0
+    return 3 * len(pattern.findall(title or "")) + min(len(pattern.findall(body or "")), 30)
+
+
+def pick_best(results: list[MatchResult], title: str, body: str) -> MatchResult:
+    """Highest score wins; on a tie, the track the posting's wording points at.
+
+    Master resumes share most core skills, so a tie across all tracks is common. Without a tie-break the
+    first track in TRACKS (support) would always win.
+    """
+    return max(results, key=lambda r: (r.score, track_affinity(title, body, r.track)))
+
+
 def gap_from_match(match: MatchResult) -> GapAnalysis:
     suggestions = []
     for skill in match.missing_required + match.missing_preferred:

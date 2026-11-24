@@ -19,7 +19,7 @@ from pydantic import Field
 from .config import TRACKS, Settings, load_settings
 from .judge import hybrid, judge_fit
 from .llm import ChatModel, LLMError, OpenAICompatibleChat
-from .matching import gap_from_match, score_posting
+from .matching import gap_from_match, pick_best, score_posting
 from .models import (
     Application,
     CreateResult,
@@ -74,7 +74,7 @@ def build_server(settings: Settings, chat_factory: Callable[[], ChatModel] | Non
             resume = guard(vault.resume_text, t)
             results.append(score_posting(posting_file=p.file, title=p.title, role=p.role, location=p.location,
                                          body=p.body, resume_text=resume, track=t, rules=settings.matching))
-        return max(results, key=lambda r: r.score)
+        return pick_best(results, p.title, p.body)
 
     # ---------------------------------------------------------------- read tools
     @app.tool()

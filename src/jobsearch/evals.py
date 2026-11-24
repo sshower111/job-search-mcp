@@ -17,7 +17,7 @@ from . import frontmatter
 from .config import TRACKS, Settings
 from .judge import hybrid, judge_fit
 from .llm import ChatModel, LLMError
-from .matching import score_posting
+from .matching import pick_best, score_posting
 from .models import MatchResult
 from .vault import Vault, posting_identity, read_text
 
@@ -101,10 +101,10 @@ def run_eval(settings: Settings, labels_path: Path, postings_dir: Path | None = 
         title = str(note.frontmatter.get("title") or Path(item.file).stem)
         company, role, location = posting_identity(note.frontmatter, title, note.body)
         tracks = TRACKS if item.track == "auto" else (item.track,)
-        base: MatchResult = max(
-            (score_posting(posting_file=item.file, title=title, role=role, location=location, body=note.body,
-                           resume_text=resumes[t], track=t, rules=settings.matching) for t in tracks),
-            key=lambda r: r.score)
+        base: MatchResult = pick_best(
+            [score_posting(posting_file=item.file, title=title, role=role, location=location, body=note.body,
+                           resume_text=resumes[t], track=t, rules=settings.matching) for t in tracks],
+            title, note.body)
         row = {"file": item.file, "expected": item.expected_fit, "baseline": base.fit,
                "baseline_score": base.score, "baseline_reasons": base.reasons}
         methods["baseline"].add(item.expected_fit, base.fit)

@@ -108,3 +108,27 @@ def test_gap_analysis_structure():
     assert gap.missing_preferred == ["Terraform"]
     assert {s.skill for s in gap.suggestions} == {"Kubernetes", "Terraform"}
     assert all(s.kind in ("learn", "build") and s.suggestion for s in gap.suggestions)
+
+
+def _result(track: str, score: int):
+    from jobsearch.models import MatchResult
+    return MatchResult(posting="p.md", track=track, score=score, fit="good", hard_fail=False, reasons=[],
+                       matched_required=[], matched_preferred=[], missing_required=[], missing_preferred=[],
+                       years_required=None, location_status="ok")
+
+
+def test_pick_best_higher_score_wins_over_wording():
+    from jobsearch.matching import pick_best
+    best = pick_best([_result("support", 90), _result("ai", 80)], "Machine Learning Engineer", "LLM RAG agents")
+    assert best.track == "support"
+
+
+@pytest.mark.parametrize("title,body,expected", [
+    ("Software Engineer, Design Systems & AI Tooling", "Build an MCP server and AI agents. Integrate tools.", "ai"),
+    ("Integration Developer", "Build APIs, webhooks and ETL pipelines for customers.", "integration"),
+    ("Technical Support Engineer", "Troubleshoot customer tickets and escalations.", "support"),
+])
+def test_pick_best_breaks_ties_by_wording(title, body, expected):
+    from jobsearch.matching import pick_best
+    results = [_result(t, 100) for t in ("support", "integration", "ai")]
+    assert pick_best(results, title, body).track == expected

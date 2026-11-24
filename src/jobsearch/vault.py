@@ -98,6 +98,62 @@ _TITLE_PATTERNS = [
     re.compile(r"^(?P<role>.+?) - (?P<company>.+?)(?: - (?P<location>.+?))?(?: \| Indeed.*)?$", re.I),
 ]
 
+# "... Software Engineer at Citi." / "... at Acme Corp in Toronto". The name must start with a capital or digit.
+_DESC_AT = re.compile(r"\bat\s+([A-Z0-9][^.,;:|()\n]{0,60}?)\s*(?:[.,;:|(]|\s+in\s|$)")
+_NOT_A_COMPANY = {"the", "a", "an", "our", "us", "least", "scale", "home"}
+
+# Applicant-tracking systems: the employer is the first path segment (jobs.lever.co/acme/...).
+_ATS_PATH = ("greenhouse.io", "lever.co", "ashbyhq.com", "workable.com", "smartrecruiters.com", "jobvite.com")
+# Applicant-tracking systems: the employer is the subdomain (acme.wd3.myworkdayjobs.com).
+_ATS_SUBDOMAIN = ("myworkdayjobs.com", "bamboohr.com", "recruitee.com", "breezy.hr", "applytojob.com",
+                  "icims.com", "taleo.net")
+# Job boards: the URL says nothing about the employer.
+_BOARDS = ("linkedin", "indeed", "glassdoor", "ziprecruiter", "monster", "workopolis", "eluta", "jobbank",
+           "simplyhired", "wellfound", "google")
+_HOST_NOISE = {"www", "jobs", "careers", "career", "apply", "join", "work", "hire", "talent", "boards",
+               "job-boards", "en"}
+_SUFFIXES = {"com", "ca", "co", "org", "net", "io", "ai", "dev", "app", "us", "uk", "gc", "on", "qc"}
+
+
+def _pretty_company(slug: str) -> str:
+    words = re.sub(r"[-_]+", " ", slug).split()
+    if not words or "".join(words).isdigit():
+        return ""
+    if len(words) == 1 and len(words[0]) <= 3:
+        return words[0].upper()
+    return " ".join(w.capitalize() for w in words)
+
+
+def company_from_url(url: str) -> str:
+    """Best-effort employer from a posting URL: jobs.citi.com -> Citi, jobs.lever.co/acme -> Acme, boards -> ''."""
+    m = re.match(r"^[a-z][a-z0-9+.-]*://([^/?#:]+)[^/?#]*([^?#]*)", url.strip(), re.I)
+    if not m:
+        return ""
+    host = m.group(1).casefold()
+    segments = [s for s in m.group(2).split("/") if s]
+    labels = host.split(".")
+    if any(b in labels for b in _BOARDS):
+        return ""
+    if any(host == h or host.endswith("." + h) for h in _ATS_PATH):
+        return _pretty_company(segments[0]) if segments else ""
+    if any(host.endswith("." + h) for h in _ATS_SUBDOMAIN):
+        return _pretty_company(labels[0])
+    core = [x for x in labels if x not in _HOST_NOISE]
+    while len(core) > 1 and core[-1] in _SUFFIXES:
+        core.pop()
+    return _pretty_company(core[-1]) if core else ""
+
+
+def company_from_description(description: str, role: str) -> str:
+    """Web Clipper copies the page's meta description, which often reads '... <role> at <Company>.'"""
+    if not description:
+        return ""
+    idx = description.casefold().find(role.casefold()) if role else -1
+    m = _DESC_AT.search(description[idx + len(role):] if idx >= 0 else description)
+    if not m or m.group(1).casefold() in _NOT_A_COMPANY:
+        return ""
+    return m.group(1).strip()
+
 
 def posting_identity(meta: dict, title: str, body: str) -> tuple[str, str, str]:
     """Best-effort (company, role, location) from clipper frontmatter / title / body."""
@@ -114,8 +170,13 @@ def posting_identity(meta: dict, title: str, body: str) -> tuple[str, str, str]:
                     location = (m.group("location") or "").strip()
                 break
     if not company:
+        company = company_from_description(str(meta.get("description") or ""), role or title)
+    if not company:
         m = re.search(r"^\s*\**company\**\s*:\s*\**\s*(.+)$", body, re.I | re.M)
-        company = m.group(1).strip(" *") if m else "Unknown"
+        company = m.group(1).strip(" *") if m else ""
+    if not company:
+        link = str(meta.get("source") or meta.get("url") or meta.get("link") or "")
+        company = company_from_url(link) or "Unknown"
     if not location:
         m = re.search(r"^\s*\**location\**\s*:\s*\**\s*(.+)$", body, re.I | re.M)
         location = m.group(1).strip(" *") if m else ""

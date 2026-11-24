@@ -169,3 +169,37 @@ def test_create_application_never_overwrites(vault, vault_dir):
 def test_create_application_sanitises_filename(vault):
     res = vault.create_application("../../Evil", "Role/<x>", "support")
     assert res.created and "/" not in res.file.replace(".md", "") and ".." not in res.file
+
+
+@pytest.mark.parametrize("url,expected", [
+    ("https://jobs.citi.com/job/mississauga/software-engineer/287/1", "Citi"),
+    ("https://jobs.lever.co/acme-labs/123", "Acme Labs"),
+    ("https://boards.greenhouse.io/shopify/jobs/1", "Shopify"),
+    ("https://job-boards.greenhouse.io/cohere/jobs/9", "Cohere"),
+    ("https://rbc.wd3.myworkdayjobs.com/en-US/RBC/job/1", "RBC"),
+    ("https://careers.td.com/job/1", "TD"),
+    ("https://www.linkedin.com/jobs/view/1", ""),
+    ("https://ca.indeed.com/viewjob?jk=1", ""),
+    ("not a url", ""),
+])
+def test_company_from_url(url, expected):
+    from jobsearch.vault import company_from_url
+    assert company_from_url(url) == expected
+
+
+def test_posting_identity_web_clipper_meta_description():
+    from jobsearch.vault import posting_identity
+    meta = {
+        "title": "Software Engineer, Design Systems & AI Tooling",
+        "source": "https://jobs.citi.com/job/mississauga/x/287/1",
+        "description": "Learn more about applying for Software Engineer, Design Systems & AI Tooling at Citi. "
+                       "Learn more about potential responsibilities.",
+    }
+    company, role, _ = posting_identity(meta, meta["title"], "## Location(s):\n\nMississauga, Ontario, Canada")
+    assert (company, role) == ("Citi", "Software Engineer, Design Systems & AI Tooling")
+
+
+def test_posting_identity_falls_back_to_url_then_unknown():
+    from jobsearch.vault import posting_identity
+    assert posting_identity({"source": "https://jobs.lever.co/acme/1"}, "Data Analyst", "")[0] == "Acme"
+    assert posting_identity({"description": "Work at the forefront of AI."}, "Data Analyst", "")[0] == "Unknown"
